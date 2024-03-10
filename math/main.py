@@ -1,15 +1,6 @@
 import pandas as pd
 
 
-network_df = pd.read_csv("./data/reseau_en_arbre.csv")
-
-network_origanl_df = pd.DataFrame(network_df) 
-
-network_duplicate_df = network_origanl_df.copy()
-
-network_duplicate_df.drop()
-
-
 batiment_subdfs = network_duplicate_df.groupby(by="id_batiment")
 for id_batment, batiment_subdfs in batiment_subdfs:
     print(id_batment)
@@ -51,7 +42,7 @@ class Infra:
 class Batiment:
     def __init__(self, id_building, list_infras):
         self.id_building = id_building
-        self.list_infras = list[Infra]    
+        self.list_infras = list_infras
 
     def get_building_difficulty (self, other_infra):
         for list[Infra] in batiment_subdfs:
@@ -65,30 +56,48 @@ class Batiment:
             return self.list_infras < other_object.list_infras
 
 
-#L'algorythme        
-def find_building(list_infras):
-    return min(list_infras, key=lambda x: x.get_infra_difficulty)
-
-
-def reparer_bat(list_infras):
-    print("Réparation des infrastructures pour le bâtiment :", list_infras.id_building)
-
-
-batiment_impactes = list[Infra]
-
-batiment_repares =[]
-
-
-while batiment_impactes:
-    batiment_a_reparer = find_building(batiment_impactes)
+def prepare_data(path_to_csv):
+    network_df = pd.read_csv(path_to_csv).drop_duplicates()
+    network_df = network_df[network_df["infra_type"] != "infra_intacte"]
     
-    reparer_bat(batiment_repares)
     
-    batiment_repares.append(batiment_repares)
+    dict_infra = {}
+    list_buildings = []
     
-    batiment_impactes.remove(batiment_repares)
+    infra_subdfs = network_df.groupby(by="infra_id")
+    
+    for infra_id, infra_subdfs in infra_subdfs:
+        length = infra_subdfs["longueur"].iloc[0]
+        infra_type = infra_subdfs["infra_type"].iloc[0]
+        nb_houses = infra_subdfs["nb_maisons"].sum()
+        dict_infra[infra_id] = Infra(infra_id, length, infra_type, nb_houses)
+        
+    building_subdfs = network_df.groupby(by="id_batiment")
+    for id_bat, building_subdfs in building_subdfs:
+        list_infra = []
+        for infra_id in building_subdfs["infra_id"]:
+            list_infra.append(dict_infra[infra_id])
+        
+        list_buildings.append(Batiment(id_bat, list_infra))
+        
+    return list_buildings
 
-print("Tout est réparé.")
+
+def plannification(list_buildings):
+    sorted_buildings = []
+    while list_buildings:
+        current_building = min(list_buildings)
+        sorted_buildings.append(current_building)
+        for infra in current_building.list_infra:
+            infra.repair_infra()
+        list_buildings.remove(current_building)
+
+    return sorted_buildings
+
+
+if __name__ == "__main__":
+    plannification(prepare_data(path_to_csv=".reseau_en_arbre.csv"))
+
 
 
 
